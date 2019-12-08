@@ -1,5 +1,5 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const { getVideoMetadata } = require('./utils/videoHelper');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { getVideoMetadata, convertVideo } = require('./utils/videoHelper');
 
 let mainWindow;
 
@@ -21,4 +21,22 @@ ipcMain.on('videos:added', (event, videos) => {
   ).then(results => {
     mainWindow.webContents.send('metadata:complete', results);
   });
+});
+
+ipcMain.on('conversion:start', (event, videos) => {
+  videos.forEach(video => {
+    convertVideo(
+      video, 
+      (outputPath) => {
+        mainWindow.webContents.send('conversion:end', { video, outputPath });
+      },
+      (timemark) => {
+        mainWindow.webContents.send('conversion:progress', { video, timemark });
+      }
+    );
+  });
+});
+
+ipcMain.on('folder:open', (event, outputPath) => {
+  shell.showItemInFolder(outputPath);
 });
